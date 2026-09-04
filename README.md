@@ -13,9 +13,9 @@ updates, so a conflicting fork fails instead of losing commits.
 
 Authentication uses a private GitHub App with **Contents: read and write** and
 **Workflows: read and write** permissions. The Workflows permission is needed
-when an upstream update changes files in `.github/workflows`. Its App ID is
-stored in the `SYNC_APP_ID` repository variable and its private key in the
-`SYNC_APP_PRIVATE_KEY` repository secret.
+when an upstream update changes files in `.github/workflows`. Its client ID is
+stored in the `SYNC_APP_CLIENT_ID` repository variable and its private key in
+the `SYNC_APP_PRIVATE_KEY` repository secret.
 
 GitHub does not offer an installation option for all public repositories only,
 so the App is installed for all repositories. Each workflow run first discovers
