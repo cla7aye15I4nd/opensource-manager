@@ -1,8 +1,0 @@
-{
-  "include": [
-    "sync_forks.py",
-    "sync_forks_test.py"
-  ],
-  "pythonVersion": "3.12",
-  "typeCheckingMode": "strict"
-}
