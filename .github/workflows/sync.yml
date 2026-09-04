@@ -1,0 +1,51 @@
+name: Sync managed forks
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Verify fork relationships without updating branches
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-managed-forks
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out manager configuration
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Configure Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Create scoped GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.SYNC_APP_ID }}
+          private-key: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Synchronize default branches
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REQUESTED_DRY_RUN: ${{ inputs.dry_run || false }}
+        run: |
+          args=()
+          if [[ "${REQUESTED_DRY_RUN}" == "true" ]]; then
+            args+=(--dry-run)
+          fi
+          python3 sync_forks.py "${args[@]}"
