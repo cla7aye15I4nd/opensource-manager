@@ -57,6 +57,7 @@ jobs:
         run: |
           failed=0
           while IFS= read -r repo; do
-            gh repo sync "${{ github.repository_owner }}/$repo" || failed=1
+            echo "Syncing $repo"
+            gh repo sync "${{ github.repository_owner }}/$repo" --force || failed=1
           done <<< "$REPOSITORIES"
           exit "$failed"

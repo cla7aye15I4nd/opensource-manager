@@ -8,8 +8,9 @@ It has only two files:
 - `.github/workflows/sync.yml`: the scheduled sync
 - `README.md`: this explanation
 
-The workflow uses GitHub's official `gh repo sync` command. It does not force
-updates, so a conflicting fork fails instead of losing commits.
+The workflow uses GitHub's official `gh repo sync --force` command so managed
+forks continue syncing when upstream rewrites history. This resets each fork's
+synced branch to match upstream, discarding any fork-only commits on that branch.
 
 Authentication uses a private GitHub App with **Contents: read and write** and
 **Workflows: read and write** permissions. The Workflows permission is needed
