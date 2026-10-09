@@ -9,7 +9,10 @@ permissions:
   contents: read
 
 jobs:
-  sync:
+  discover:
+    outputs:
+      batches: ${{ steps.find.outputs.batches }}
+      count: ${{ steps.find.outputs.count }}
     runs-on: ubuntu-latest
     steps:
       - name: Find public open-source forks
@@ -23,37 +26,43 @@ jobs:
               --jq '.[] | select(.fork and (.private | not) and (.name | startswith("opensource-"))) | .name'
           )"
 
-          if [[ -z "$repositories" ]]; then
-            echo "No matching forks found."
-            echo "repositories=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          REPOSITORIES="$repositories" python3 - <<'PYTHON'
+          import json
+          import os
+          repos = os.environ["REPOSITORIES"].splitlines()
+          batches = [{"repositories": "\n".join(repos[i:i + 400])}
+                     for i in range(0, len(repos), 400)]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("batches=" + json.dumps(batches) + "\n")
+              output.write("count=" + str(len(repos)) + "\n")
+          print(f"Found {len(repos)} forks in {len(batches)} batches")
+          PYTHON
 
-          echo "Matching forks:"
-          echo "$repositories"
-          {
-            echo "repositories<<EOF"
-            echo "$repositories"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
+  sync:
+    needs: discover
+    if: needs.discover.outputs.count != '0'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.batches) }}
+    steps:
       - name: Create GitHub App token
-        if: steps.find.outputs.repositories != ''
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
         with:
           client-id: ${{ vars.SYNC_APP_CLIENT_ID }}
           private-key: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: ${{ steps.find.outputs.repositories }}
+          repositories: ${{ matrix.repositories }}
           permission-contents: write
           permission-workflows: write
 
       - name: Sync forks
-        if: steps.find.outputs.repositories != ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPOSITORIES: ${{ steps.find.outputs.repositories }}
+          REPOSITORIES: ${{ matrix.repositories }}
         run: |
           failed=0
           while IFS= read -r repo; do
