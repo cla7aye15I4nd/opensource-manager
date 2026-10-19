@@ -38,6 +38,20 @@ are never selected for synchronization.
 
 You can also run the workflow manually from the repository's **Actions** page.
 
+## Manager security
+
+Pull requests, Issues, Discussions, Wiki, Projects, and automatic merging are
+disabled in this repository. The sync workflow runs only on `main` in the owner's
+manager repository, when triggered by that owner or the owner's scheduled run.
+It does not run on pull requests, comments, or upstream code. Overlapping sync
+runs are serialized, and jobs have explicit time limits.
+
+The built-in token has read-only contents access and cannot approve pull requests.
+Repository Actions policy allows only the pinned `actions/create-github-app-token`
+version used by this workflow and requires full commit SHA references. App tokens
+remain short-lived and scoped to the discovered public forks in each batch; they
+do not include this manager. The private key is stored only as a repository secret.
+
 ## Project priorities
 
 New imports prioritize infrastructure roles: databases and storage, networking and

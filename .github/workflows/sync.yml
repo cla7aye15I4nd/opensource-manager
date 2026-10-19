@@ -8,8 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: managed-fork-sync
+  cancel-in-progress: false
+
 jobs:
   discover:
+    if: github.repository == 'cla7aye15I4nd/opensource-manager' && github.ref == 'refs/heads/main' && github.actor == github.repository_owner
+    timeout-minutes: 10
     outputs:
       batches: ${{ steps.find.outputs.batches }}
       count: ${{ steps.find.outputs.count }}
@@ -41,6 +47,7 @@ jobs:
   sync:
     needs: discover
     if: needs.discover.outputs.count != '0'
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
