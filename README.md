@@ -21,6 +21,8 @@ Each worker reads the upstream default branch and both default-branch commit
 IDs. Forks already matching that snapshot skip synchronization after their Actions
 setting is checked. Other forks use the upstream default branch explicitly, so a
 fork's custom default branch does not cause a lookup of a nonexistent upstream branch.
+If the upstream default branch is missing in the fork, it is created at the upstream
+commit. Existing custom branches and the fork's default-branch setting are preserved.
 
 The workflow uses GitHub's official `gh repo sync --force --branch BRANCH` command so managed
 forks continue syncing when upstream rewrites history. This resets each fork's
