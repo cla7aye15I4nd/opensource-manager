@@ -8,12 +8,22 @@ Repository files:
 - `.github/workflows/sync.yml`: the scheduled sync
 - `README.md`: this explanation and the managed project list
 
+Before syncing each fork, the workflow checks its repository-level GitHub Actions
+setting. If Actions is enabled, it disables Actions and verifies the result. Forks
+with Actions already disabled proceed directly to synchronization. If reading,
+disabling, or verifying the setting fails, that fork is skipped and the batch is
+marked as failed; the remaining forks are still processed. This prevents upstream
+workflows from running on managed forks while allowing this manager to keep running.
+Private forks remain excluded. External CI services are not managed.
+
 The workflow uses GitHub's official `gh repo sync --force` command so managed
 forks continue syncing when upstream rewrites history. This resets each fork's
 synced branch to match upstream, discarding any fork-only commits on that branch.
 
-Authentication uses a private GitHub App with **Contents: read and write** and
-**Workflows: read and write** permissions. The Workflows permission is needed
+Authentication uses a private GitHub App with **Contents: read and write**,
+**Workflows: read and write**, and **Administration: read and write** permissions.
+Administration is required to read and disable repository-level Actions settings.
+The Workflows permission is needed
 when an upstream update changes files in `.github/workflows`. Its client ID is
 stored in the `SYNC_APP_CLIENT_ID` repository variable and its private key in
 the `SYNC_APP_PRIVATE_KEY` repository secret.

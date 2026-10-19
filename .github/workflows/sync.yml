@@ -58,15 +58,42 @@ jobs:
           repositories: ${{ matrix.repositories }}
           permission-contents: write
           permission-workflows: write
+          permission-administration: write
 
-      - name: Sync forks
+      - name: Disable fork Actions and sync upstream
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPOSITORIES: ${{ matrix.repositories }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           failed=0
           while IFS= read -r repo; do
+            full_name="$OWNER/$repo"
+            if ! enabled="$(gh api "repos/$full_name/actions/permissions" --jq '.enabled')"; then
+              echo "::error::Could not read Actions settings for $full_name; skipping sync"
+              failed=1
+              continue
+            fi
+            if [[ "$enabled" == "true" ]]; then
+              echo "Disabling Actions for $full_name"
+              if ! gh api --method PUT "repos/$full_name/actions/permissions" -F enabled=false; then
+                echo "::error::Could not disable Actions for $full_name; skipping sync"
+                failed=1
+                continue
+              fi
+              if ! enabled="$(gh api "repos/$full_name/actions/permissions" --jq '.enabled')"; then
+                echo "::error::Could not verify Actions settings for $full_name; skipping sync"
+                failed=1
+                continue
+              fi
+            fi
+            if [[ "$enabled" != "false" ]]; then
+              echo "::error::Actions are not confirmed disabled for $full_name; skipping sync"
+              failed=1
+              continue
+            fi
+            echo "Actions are disabled for $full_name"
             echo "Syncing $repo"
-            gh repo sync "${{ github.repository_owner }}/$repo" --force || failed=1
+            gh repo sync "$full_name" --force || failed=1
           done <<< "$REPOSITORIES"
           exit "$failed"
