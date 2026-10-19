@@ -7,6 +7,7 @@ Repository files:
 
 - `.github/workflows/sync.yml`: the scheduled sync
 - `README.md`: this explanation and the managed project list
+- `.github/tests/sync.sh`: mocked API regression checks, run before discovery
 
 Before syncing each fork, the workflow checks its repository-level GitHub Actions
 setting. If Actions is enabled, it disables Actions and retries verification up to
@@ -16,6 +17,8 @@ disabling, or verifying the setting fails, that fork is skipped and the batch is
 marked as failed; the remaining forks are still processed. This prevents upstream
 workflows from running on managed forks while allowing this manager to keep running.
 Private forks remain excluded. External CI services are not managed.
+Rate limits and HTTP 500/502/503/504 responses are retried up to three attempts;
+permanent failures remain visible instead of being treated as successful syncs.
 
 Each worker reads the upstream default branch and both default-branch commit
 IDs. Forks already matching that snapshot skip synchronization after their Actions
@@ -60,6 +63,9 @@ Repository Actions policy allows only the pinned `actions/create-github-app-toke
 version used by this workflow and requires full commit SHA references. App tokens
 remain short-lived and scoped to the discovered public forks in each batch; they
 do not include this manager. The private key is stored only as a repository secret.
+Before discovery or App authentication, the workflow fetches its regression test
+and workflow source from the exact running commit with the read-only token, then
+tests missing refs, branch preservation, propagation delays, and API failures.
 
 ## Project priorities
 

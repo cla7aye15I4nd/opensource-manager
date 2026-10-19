@@ -21,6 +21,16 @@ jobs:
       count: ${{ steps.find.outputs.count }}
     runs-on: ubuntu-latest
     steps:
+      - name: Validate sync logic
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .github/workflows .github/tests
+          gh api "repos/$GITHUB_REPOSITORY/contents/.github/workflows/sync.yml?ref=$GITHUB_SHA" \
+            -H 'Accept: application/vnd.github.raw+json' > .github/workflows/sync.yml
+          gh api "repos/$GITHUB_REPOSITORY/contents/.github/tests/sync.sh?ref=$GITHUB_SHA" \
+            -H 'Accept: application/vnd.github.raw+json' > .github/tests/sync.sh
+          bash .github/tests/sync.sh
       - name: Find public open-source forks
         id: find
         env:
@@ -65,21 +75,45 @@ jobs:
           REPOSITORIES: ${{ matrix.repositories }}
           OWNER: ${{ github.repository_owner }}
         run: |
+          gh_retry() {
+            local attempt output status message delay error_file
+            error_file="$(mktemp)"
+            for attempt in 1 2 3; do
+              if output="$(gh "$@" 2> "$error_file")"; then
+                printf '%s\n' "$output"
+                rm "$error_file"
+                return 0
+              else
+                status=$?
+              fi
+              message="$(cat "$error_file")"
+              printf '%s\n' "$message" >&2
+              case "$message" in
+                *"HTTP 429"*|*"secondary rate limit"*|*"abuse detection"*) delay=60 ;;
+                *"HTTP 500"*|*"HTTP 502"*|*"HTTP 503"*|*"HTTP 504"*) delay=$((attempt * 2)) ;;
+                *) break ;;
+              esac
+              [[ "$attempt" == 3 ]] && break
+              sleep "$delay"
+            done
+            rm "$error_file"
+            return "$status"
+          }
           sync_fork() {
-            local repo="$1" item full_name branch enabled attempt branch_sha upstream_sha
+            local repo="$1" item full_name branch enabled attempt branch_sha upstream_sha branch_ref
             full_name="$OWNER/$repo"
-            if ! enabled="$(gh api "repos/$full_name/actions/permissions" --jq '.enabled')"; then
+            if ! enabled="$(gh_retry api "repos/$full_name/actions/permissions" --jq '.enabled')"; then
               echo "::error::Could not read Actions settings for $full_name; skipping sync"
               return 1
             fi
             if [[ "$enabled" == "true" ]]; then
               echo "Disabling Actions for $full_name"
-              if ! gh api --method PUT "repos/$full_name/actions/permissions" -F enabled=false; then
+              if ! gh_retry api --method PUT "repos/$full_name/actions/permissions" -F enabled=false; then
                 echo "::error::Could not disable Actions for $full_name; skipping sync"
                 return 1
               fi
               for attempt in 1 2 3 4 5; do
-                enabled="$(gh api "repos/$full_name/actions/permissions" --jq '.enabled')" || enabled=unknown
+                enabled="$(gh_retry api "repos/$full_name/actions/permissions" --jq '.enabled')" || enabled=unknown
                 [[ "$enabled" == false ]] && break
                 sleep "$attempt"
               done
@@ -89,7 +123,7 @@ jobs:
               return 1
             fi
             echo "Actions are disabled for $full_name"
-            if ! item="$(gh api graphql -F owner="$OWNER" -F name="$repo" -f query='
+            if ! item="$(gh_retry api graphql -F owner="$OWNER" -F name="$repo" -f query='
               query($owner:String!,$name:String!) {
                 repository(owner:$owner,name:$name) {
                   defaultBranchRef { name target { oid } }
@@ -112,23 +146,24 @@ jobs:
               return 0
             fi
             if [[ "$(jq -r '.forkBranch' <<< "$item")" != "$branch" ]]; then
-              branch_sha="$(gh api graphql -F owner="$OWNER" -F name="$repo" -F ref="refs/heads/$branch" -f query='
+              branch_ref="$(gh_retry api graphql -F owner="$OWNER" -F name="$repo" -F ref="refs/heads/$branch" -f query='
                 query($owner:String!,$name:String!,$ref:String!) {
                   repository(owner:$owner,name:$name) { ref(qualifiedName:$ref) { target { oid } } }
-                }' --jq '.data.repository.ref.target.oid')" || return 1
+                }' --jq '{sha:.data.repository.ref.target.oid}')" || return 1
+              branch_sha="$(jq -r '.sha // empty' <<< "$branch_ref")"
               upstream_sha="$(jq -er '.upstreamSha' <<< "$item")" || return 1
               if [[ "$branch_sha" == "$upstream_sha" ]]; then
                 echo "Already up to date: $full_name ($branch)"
                 return 0
               fi
-              if [[ "$branch_sha" == null ]]; then
+              if [[ -z "$branch_sha" ]]; then
                 gh api --method POST "repos/$full_name/git/refs" -f "ref=refs/heads/$branch" -f "sha=$upstream_sha" > /dev/null || return 1
                 echo "Created upstream branch: $full_name ($branch)"
                 return 0
               fi
             fi
             echo "Syncing $repo"
-            gh repo sync "$full_name" --branch "$branch" --force
+            gh_retry repo sync "$full_name" --branch "$branch" --force
           }
-          export -f sync_fork
+          export -f gh_retry sync_fork
           printf '%s\n' "$REPOSITORIES" | xargs -P 2 -n 1 bash -e -c 'sync_fork "$1"' _
