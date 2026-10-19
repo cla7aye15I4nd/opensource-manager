@@ -9,14 +9,20 @@ Repository files:
 - `README.md`: this explanation and the managed project list
 
 Before syncing each fork, the workflow checks its repository-level GitHub Actions
-setting. If Actions is enabled, it disables Actions and verifies the result. Forks
+setting. If Actions is enabled, it disables Actions and retries verification up to
+five times to allow the setting to propagate. Forks
 with Actions already disabled proceed directly to synchronization. If reading,
 disabling, or verifying the setting fails, that fork is skipped and the batch is
 marked as failed; the remaining forks are still processed. This prevents upstream
 workflows from running on managed forks while allowing this manager to keep running.
 Private forks remain excluded. External CI services are not managed.
 
-The workflow uses GitHub's official `gh repo sync --force` command so managed
+Each worker reads the upstream default branch and both default-branch commit
+IDs. Forks already matching that snapshot skip synchronization after their Actions
+setting is checked. Other forks use the upstream default branch explicitly, so a
+fork's custom default branch does not cause a lookup of a nonexistent upstream branch.
+
+The workflow uses GitHub's official `gh repo sync --force --branch BRANCH` command so managed
 forks continue syncing when upstream rewrites history. This resets each fork's
 synced branch to match upstream, discarding any fork-only commits on that branch.
 
@@ -32,7 +38,8 @@ GitHub does not offer an installation option for all public repositories only,
 so the App is installed for all repositories. Each workflow run first discovers
 matching public forks with its read-only built-in token, then creates a short-lived
 App token scoped only to each batch of at most 400 repositories, below GitHub’s
-500-repository token limit. Batches run sequentially, and a failed batch does not
+500-repository token limit. Two batches run concurrently, with two repositories
+processed per batch, for at most four repository workers. A failed batch does not
 prevent the remaining batches from running. Private repositories and non-forks
 are never selected for synchronization.
 

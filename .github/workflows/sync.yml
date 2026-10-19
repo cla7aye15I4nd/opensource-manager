@@ -27,22 +27,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           OWNER: ${{ github.repository_owner }}
         run: |
-          repositories="$(
-            gh api --paginate "users/$OWNER/repos?per_page=100&type=owner&sort=full_name" \
-              --jq '.[] | select(.fork and (.private | not) and (.name | startswith("opensource-"))) | .name'
-          )"
-
-          REPOSITORIES="$repositories" python3 - <<'PYTHON'
-          import json
-          import os
-          repos = os.environ["REPOSITORIES"].splitlines()
-          batches = [{"repositories": "\n".join(repos[i:i + 400])}
-                     for i in range(0, len(repos), 400)]
-          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-              output.write("batches=" + json.dumps(batches) + "\n")
-              output.write("count=" + str(len(repos)) + "\n")
-          print(f"Found {len(repos)} forks in {len(batches)} batches")
-          PYTHON
+          gh api --paginate "users/$OWNER/repos?per_page=100&type=owner&sort=full_name" \
+            --jq '.[] | select(.fork and (.private | not) and (.name | startswith("opensource-"))) | .name' > forks.txt
+          jq -sc '
+            [range(0; length; 400) as $i | .[$i:$i+400]
+             | {repositories:join("\n")}]
+          ' < <(jq -R . forks.txt) > batches.json
+          echo "batches=$(cat batches.json)" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq -Rn '[inputs]|length' < forks.txt)" >> "$GITHUB_OUTPUT"
 
   sync:
     needs: discover
@@ -51,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 2
       matrix:
         include: ${{ fromJSON(needs.discover.outputs.batches) }}
     steps:
@@ -73,34 +65,54 @@ jobs:
           REPOSITORIES: ${{ matrix.repositories }}
           OWNER: ${{ github.repository_owner }}
         run: |
-          failed=0
-          while IFS= read -r repo; do
+          sync_fork() {
+            local repo="$1" item full_name branch enabled attempt
             full_name="$OWNER/$repo"
             if ! enabled="$(gh api "repos/$full_name/actions/permissions" --jq '.enabled')"; then
               echo "::error::Could not read Actions settings for $full_name; skipping sync"
-              failed=1
-              continue
+              return 1
             fi
             if [[ "$enabled" == "true" ]]; then
               echo "Disabling Actions for $full_name"
               if ! gh api --method PUT "repos/$full_name/actions/permissions" -F enabled=false; then
                 echo "::error::Could not disable Actions for $full_name; skipping sync"
-                failed=1
-                continue
+                return 1
               fi
-              if ! enabled="$(gh api "repos/$full_name/actions/permissions" --jq '.enabled')"; then
-                echo "::error::Could not verify Actions settings for $full_name; skipping sync"
-                failed=1
-                continue
-              fi
+              for attempt in 1 2 3 4 5; do
+                enabled="$(gh api "repos/$full_name/actions/permissions" --jq '.enabled')" || enabled=unknown
+                [[ "$enabled" == false ]] && break
+                sleep "$attempt"
+              done
             fi
             if [[ "$enabled" != "false" ]]; then
               echo "::error::Actions are not confirmed disabled for $full_name; skipping sync"
-              failed=1
-              continue
+              return 1
             fi
             echo "Actions are disabled for $full_name"
+            if ! item="$(gh api graphql -F owner="$OWNER" -F name="$repo" -f query='
+              query($owner:String!,$name:String!) {
+                repository(owner:$owner,name:$name) {
+                  defaultBranchRef { name target { oid } }
+                  parent { defaultBranchRef { name target { oid } } }
+                }
+              }' --jq '
+                .data.repository
+                | {branch:.parent.defaultBranchRef.name, upstreamSha:.parent.defaultBranchRef.target.oid,
+                   forkBranch:.defaultBranchRef.name, forkSha:.defaultBranchRef.target.oid}
+              ')"; then
+              echo "::error::Could not read branch heads for $full_name"
+              return 1
+            fi
+            if ! branch="$(jq -er '.branch' <<< "$item")"; then
+              echo "::error::No upstream default branch for $full_name"
+              return 1
+            fi
+            if jq -e '.forkBranch == .branch and .forkSha != null and .forkSha == .upstreamSha' <<< "$item" > /dev/null; then
+              echo "Already up to date: $full_name ($branch)"
+              return 0
+            fi
             echo "Syncing $repo"
-            gh repo sync "$full_name" --force || failed=1
-          done <<< "$REPOSITORIES"
-          exit "$failed"
+            gh repo sync "$full_name" --branch "$branch" --force
+          }
+          export -f sync_fork
+          printf '%s\n' "$REPOSITORIES" | xargs -P 2 -n 1 bash -e -c 'sync_fork "$1"' _
