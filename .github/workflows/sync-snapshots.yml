@@ -1,0 +1,78 @@
+name: Sync upstream source snapshots
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Check for updates without publishing commits
+        type: boolean
+        default: true
+      only:
+        description: Optional configured library key (blank means all 16)
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-source-snapshots
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'cla7aye15I4nd/opensource-manager' && github.ref == 'refs/heads/main' && github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Load pinned manager code and validate it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .github/scripts .github/tests
+          for file in .github/scripts/sync_snapshots.py .github/tests/test_sync_snapshots.py .github/snapshot-mirrors.json; do
+            gh api "repos/$GITHUB_REPOSITORY/contents/$file?ref=$GITHUB_SHA" \
+              -H 'Accept: application/vnd.github.raw+json' > "$file"
+          done
+          python3 -m unittest discover -s .github/tests -p test_sync_snapshots.py -v
+          python3 - <<'PY'
+          import importlib.util, json, os, pathlib
+          p = pathlib.Path('.github/scripts/sync_snapshots.py')
+          spec = importlib.util.spec_from_file_location('snapshots', p)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          mirrors = module.validate_config(json.loads(pathlib.Path('.github/snapshot-mirrors.json').read_text()), os.environ['GITHUB_REPOSITORY_OWNER'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('repositories<<REPOSITORIES\n')
+              output.write('\n'.join(m['target'].split('/')[1] for m in mirrors))
+              output.write('\nREPOSITORIES\n')
+          PY
+        id: config
+
+      - name: Create token restricted to the configured mirrors
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ steps.config.outputs.repositories }}
+          permission-contents: write
+          permission-workflows: write
+          permission-administration: read
+
+      - name: Synchronize current source trees
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          OWNER: ${{ github.repository_owner }}
+          ONLY: ${{ inputs.only }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          args=(--config .github/snapshot-mirrors.json --owner "$OWNER")
+          [[ -z "$ONLY" ]] || args+=(--only "$ONLY")
+          [[ "$DRY_RUN" != true ]] || args+=(--dry-run)
+          python3 .github/scripts/sync_snapshots.py "${args[@]}"

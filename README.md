@@ -3,6 +3,11 @@
 This public repository discovers and updates every public fork owned by
 `cla7aye15I4nd` whose name starts with `opensource-`. It runs every 30 minutes.
 
+Sixteen independently published mirrors of non-GitHub upstreams are maintained
+by a separate workflow every six hours. See [source mirror configuration and
+operations](SOURCE-MIRRORS.md). These snapshot repositories preserve current
+source and licenses and receive ordinary incremental commits.
+
 Repository files:
 
 - `.github/workflows/sync.yml`: the scheduled sync

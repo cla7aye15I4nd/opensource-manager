@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "mirrors": [
+    {
+      "key": "cairo",
+      "target": "cla7aye15I4nd/opensource-cairo__cairo",
+      "canonical_upstream": "https://gitlab.freedesktop.org/cairo/cairo",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/cairo/cairo.git"
+    },
+    {
+      "key": "pixman",
+      "target": "cla7aye15I4nd/opensource-pixman__pixman",
+      "canonical_upstream": "https://gitlab.freedesktop.org/pixman/pixman",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/pixman/pixman.git"
+    },
+    {
+      "key": "fontconfig",
+      "target": "cla7aye15I4nd/opensource-fontconfig__fontconfig",
+      "canonical_upstream": "https://gitlab.freedesktop.org/fontconfig/fontconfig",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/fontconfig/fontconfig.git"
+    },
+    {
+      "key": "gettext",
+      "target": "cla7aye15I4nd/opensource-gnu__gettext",
+      "canonical_upstream": "https://git.savannah.gnu.org/cgit/gettext.git",
+      "strategy": "release",
+      "formula": "gettext",
+      "allowed_archive_hosts": [
+        "ftpmirror.gnu.org"
+      ],
+      "reason": "Command '['git', 'clone', '--depth', '1', '--single-branch', '--no-tags', 'https://git.savannah.gnu.org/git/gettext.git', '/Users/zhengyu/libvips/output/c-library-onboarding/imports/gettext/upstream-checkout']' timed out after 100 seconds"
+    },
+    {
+      "key": "bzip2",
+      "target": "cla7aye15I4nd/opensource-sourceware__bzip2",
+      "canonical_upstream": "https://sourceware.org/git/?p=bzip2.git",
+      "strategy": "git",
+      "upstream_url": "https://sourceware.org/git/bzip2.git"
+    },
+    {
+      "key": "lzo",
+      "target": "cla7aye15I4nd/opensource-oberhumer__lzo",
+      "canonical_upstream": "https://www.oberhumer.com/opensource/lzo/",
+      "strategy": "release",
+      "formula": "lzo",
+      "allowed_archive_hosts": [
+        "www.oberhumer.com"
+      ],
+      "reason": "Official source release"
+    },
+    {
+      "key": "jbigkit",
+      "target": "cla7aye15I4nd/opensource-mgk25__jbigkit",
+      "canonical_upstream": "https://www.cl.cam.ac.uk/~mgk25/git/jbigkit",
+      "strategy": "git",
+      "upstream_url": "https://www.cl.cam.ac.uk/~mgk25/git/jbigkit"
+    },
+    {
+      "key": "libx11",
+      "target": "cla7aye15I4nd/opensource-xorg__libx11",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libx11",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libx11.git"
+    },
+    {
+      "key": "libxext",
+      "target": "cla7aye15I4nd/opensource-xorg__libxext",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxext",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxext.git"
+    },
+    {
+      "key": "libxrender",
+      "target": "cla7aye15I4nd/opensource-xorg__libxrender",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxrender",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxrender.git"
+    },
+    {
+      "key": "libxcb",
+      "target": "cla7aye15I4nd/opensource-xorg__libxcb",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxcb",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxcb.git"
+    },
+    {
+      "key": "libxau",
+      "target": "cla7aye15I4nd/opensource-xorg__libxau",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxau",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxau.git"
+    },
+    {
+      "key": "libxdmcp",
+      "target": "cla7aye15I4nd/opensource-xorg__libxdmcp",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxdmcp",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxdmcp.git"
+    },
+    {
+      "key": "giflib",
+      "target": "cla7aye15I4nd/opensource-giflib__giflib",
+      "canonical_upstream": "https://sourceforge.net/p/giflib/code/ci/master/tree/",
+      "strategy": "git",
+      "upstream_url": "https://git.code.sf.net/p/giflib/code"
+    },
+    {
+      "key": "libunistring",
+      "target": "cla7aye15I4nd/opensource-gnu__libunistring",
+      "canonical_upstream": "https://git.savannah.gnu.org/cgit/libunistring.git",
+      "strategy": "release",
+      "formula": "libunistring",
+      "allowed_archive_hosts": [
+        "ftpmirror.gnu.org"
+      ],
+      "reason": "Official release includes complete gnulib-derived library source; upstream Git checkout is a bootstrap source tree."
+    },
+    {
+      "key": "readline",
+      "target": "cla7aye15I4nd/opensource-gnu__readline",
+      "canonical_upstream": "https://git.savannah.gnu.org/cgit/readline.git",
+      "strategy": "git",
+      "upstream_url": "https://git.savannah.gnu.org/git/readline.git"
+    }
+  ]
+}
