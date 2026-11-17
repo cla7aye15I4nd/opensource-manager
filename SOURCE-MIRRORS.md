@@ -1,30 +1,25 @@
-# Non-GitHub upstream source mirrors
+# Non-GitHub upstream mirrors
 
-The **Sync upstream source snapshots** workflow keeps the 16 independent public repositories in `.github/snapshot-mirrors.json` current. It runs every six hours; GitHub may delay scheduled runs. The existing native-fork synchronization workflow is unchanged and ignores these repositories because they are not GitHub forks.
+The manager tracks 19 Git upstreams in `.github/history-mirrors.json`. This includes libaom, dav1d, libgav1 and libyuv. Each mirror clones the complete Git repository, then publishes the upstream default branch with its complete ancestry and all upstream tags. It never uses a shallow clone, squashes commits or force-pushes. Other upstream branches are not copied. The workflow runs every six hours; manual runs default to dry run and can select one library key.
 
-Thirteen projects import their upstream default branch's current tree. Gettext, LZO and libunistring use complete official source releases discovered through Homebrew's formula API and verified against its SHA256 before extraction. Libunistring's Git checkout is a bootstrap tree; the release contains the actual gnulib-derived library sources. These three mirrors update when the release registry updates, rather than following development commits.
+The 15 previously published Git or GNU source-snapshot repositories keep their existing snapshot `main` branch. The history workflow creates an independent `upstream-history` branch, verifies its fast-forward relationship on subsequent runs, publishes tags, and then makes it the default branch. The old snapshot branch remains available. Four new repositories use the upstream's branch name as their default. The existing native GitHub fork `opensource-lemenkov__libyuv` remains separately managed by the fork workflow; `opensource-chromium__libyuv` follows the canonical Chromium Git upstream.
 
-Each initial mirror has one new snapshot commit. Upstream history, tags and branches are not published. Original README, LICENSE/COPYING, NOTICE and attribution files remain intact. `UPSTREAM-MIRROR.md` identifies the upstream; `.upstream-snapshot.json` records the source revision/archive checksum and source-tree hashes. Upstream build scripts and workflows are copied as data, never executed by this manager. Target-repository Actions must be disabled before publication and remain disabled.
+The three release-source entries in `.github/snapshot-mirrors.json` remain synchronized as source snapshots: gettext, libunistring and LZO. Gettext and libunistring are *also* configured for full-history synchronization from GNU Savannah. Their Git service may time out or return errors; in that case the history workflow reports an error for those entries while their release snapshots continue. An official public LZO Git repository has not been identified, so only the published release sequence can be retained for LZO. Release archives are obtained through Homebrew's formula registry and checked against its SHA256.
 
-Each changed source tree produces an ordinary follow-up commit. There are no force pushes, branch resets, history replacements or tag pushes. A source revision change with identical file contents creates no duplicate commit. Manual changes to a managed mirror cause synchronization to stop for that repository rather than overwrite the change. Concurrent remote changes are rejected by normal Git fast-forward checks. Fork upstreams with large Git histories may need a full **local** clone when their server cannot support shallow HTTP, but only the current exported tree is published.
+Git history contains historical files, including deleted files. These histories were already public at their upstream origins; the manager does not claim to audit every historical blob for credentials. Target repository Actions must be disabled before publication and remain disabled. Upstream build scripts and workflows are copied as Git content, never run by the manager. The manager refuses to update a history branch that diverges from upstream or to replace a conflicting tag. It also refuses to update a source snapshot with local changes. Existing repositories and branches are not deleted.
 
-The existing `SYNC_APP_CLIENT_ID` variable and `SYNC_APP_PRIVATE_KEY` secret are reused. Each run requests a GitHub App token restricted to the 16 configured target repositories, with contents/workflows write and administration read (to check that target Actions are disabled). Workflow write preserves upstream `.github/workflows` files as source data. No new personal access token is needed. Repository creation and the initial imports are bootstrap operations; the scheduled workflow will not create missing repositories.
+The `SYNC_APP_CLIENT_ID` variable and `SYNC_APP_PRIVATE_KEY` secret provide a short-lived GitHub App token limited to each configured target. The history workflow needs Contents and Workflows write permissions to push upstream objects and Administration write permission to select the history branch as the repository default. The snapshot workflow needs Contents and Workflows write plus Administration read. Repository creation is a separate bootstrap step; scheduled synchronization requires targets to exist.
 
-## Run or inspect synchronization
+## Run synchronization
 
-Open **Actions → Sync upstream source snapshots → Run workflow** on `main`. Manual runs default to **dry run** and accept an optional library key such as `pixman`. Uncheck dry run to publish changed snapshots. Scheduled runs publish automatically. The run's job summary lists the result for every repository. A failed source fetch or publication check appears as `error`; other configured mirrors are still checked.
-
-The current-tree publication check requires a license file and checks common credential markers and oversized files. Already-public test fixture keys are recorded separately. This is a lightweight check, not an exhaustive secret audit or a review of upstream history. Archives are extracted using Python's data filter. The manager never runs an upstream configure/build/bootstrap script.
-
-## Change or pause a mirror
-
-Review changes to `.github/snapshot-mirrors.json` before merging to `main`. Only credential-free public HTTPS Git origins and explicitly allowed release archive hosts are accepted. Release payloads must match the registry SHA256, including when an HTTPS download mirror is used. Remove an entry to stop managing it, or disable this workflow to pause all snapshot synchronization; existing repository contents are retained.
+In the manager's Actions page, run **Sync full upstream Git histories** or **Sync upstream source snapshots**. Manual runs default to dry run. To publish, turn dry run off. Specify a library key such as `libaom` or `pixman` to limit a history run. Each job reports `updated`, `unchanged`, `would-update` or `error`. A failed target does not stop the other history jobs.
 
 ## Local validation
 
 ```sh
+python3 -m unittest discover -s .github/tests -p test_sync_history.py -v
 python3 -m unittest discover -s .github/tests -p test_sync_snapshots.py -v
 bash .github/tests/sync.sh
 ```
 
-Tests use temporary local Git repositories to check initial imports, incremental updates, preservation of manual changes, provenance checks, missing licenses/credential markers, archive path traversal rejection, source-only exports and ordinary pushes. Python 3.12 or later, Git and GitHub CLI are required.
+The snapshot archive safety test requires Python 3.12 or later. Git and GitHub CLI are required for live synchronization.

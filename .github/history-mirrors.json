@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "mirrors": [
+    {
+      "key": "cairo",
+      "target": "cla7aye15I4nd/opensource-cairo__cairo",
+      "canonical_upstream": "https://gitlab.freedesktop.org/cairo/cairo",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/cairo/cairo.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "pixman",
+      "target": "cla7aye15I4nd/opensource-pixman__pixman",
+      "canonical_upstream": "https://gitlab.freedesktop.org/pixman/pixman",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/pixman/pixman.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "fontconfig",
+      "target": "cla7aye15I4nd/opensource-fontconfig__fontconfig",
+      "canonical_upstream": "https://gitlab.freedesktop.org/fontconfig/fontconfig",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/fontconfig/fontconfig.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "bzip2",
+      "target": "cla7aye15I4nd/opensource-sourceware__bzip2",
+      "canonical_upstream": "https://sourceware.org/git/?p=bzip2.git",
+      "strategy": "git",
+      "upstream_url": "https://sourceware.org/git/bzip2.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "jbigkit",
+      "target": "cla7aye15I4nd/opensource-mgk25__jbigkit",
+      "canonical_upstream": "https://www.cl.cam.ac.uk/~mgk25/git/jbigkit",
+      "strategy": "git",
+      "upstream_url": "https://www.cl.cam.ac.uk/~mgk25/git/jbigkit",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libx11",
+      "target": "cla7aye15I4nd/opensource-xorg__libx11",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libx11",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libx11.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libxext",
+      "target": "cla7aye15I4nd/opensource-xorg__libxext",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxext",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxext.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libxrender",
+      "target": "cla7aye15I4nd/opensource-xorg__libxrender",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxrender",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxrender.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libxcb",
+      "target": "cla7aye15I4nd/opensource-xorg__libxcb",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxcb",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxcb.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libxau",
+      "target": "cla7aye15I4nd/opensource-xorg__libxau",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxau",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxau.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libxdmcp",
+      "target": "cla7aye15I4nd/opensource-xorg__libxdmcp",
+      "canonical_upstream": "https://gitlab.freedesktop.org/xorg/lib/libxdmcp",
+      "strategy": "git",
+      "upstream_url": "https://gitlab.freedesktop.org/xorg/lib/libxdmcp.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "giflib",
+      "target": "cla7aye15I4nd/opensource-giflib__giflib",
+      "canonical_upstream": "https://sourceforge.net/p/giflib/code/ci/master/tree/",
+      "strategy": "git",
+      "upstream_url": "https://git.code.sf.net/p/giflib/code",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "readline",
+      "target": "cla7aye15I4nd/opensource-gnu__readline",
+      "canonical_upstream": "https://git.savannah.gnu.org/cgit/readline.git",
+      "strategy": "git",
+      "upstream_url": "https://git.savannah.gnu.org/git/readline.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "gettext",
+      "target": "cla7aye15I4nd/opensource-gnu__gettext",
+      "canonical_upstream": "https://git.savannah.gnu.org/cgit/gettext.git",
+      "upstream_url": "https://git.savannah.gnu.org/git/gettext.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libunistring",
+      "target": "cla7aye15I4nd/opensource-gnu__libunistring",
+      "canonical_upstream": "https://git.savannah.gnu.org/cgit/libunistring.git",
+      "upstream_url": "https://git.savannah.gnu.org/git/libunistring.git",
+      "branch": "upstream-history"
+    },
+    {
+      "key": "libaom",
+      "target": "cla7aye15I4nd/opensource-aomedia__aom",
+      "canonical_upstream": "https://aomedia.googlesource.com/aom",
+      "upstream_url": "https://aomedia.googlesource.com/aom",
+      "branch": "main"
+    },
+    {
+      "key": "libdav1d",
+      "target": "cla7aye15I4nd/opensource-videolan__dav1d",
+      "canonical_upstream": "https://code.videolan.org/videolan/dav1d",
+      "upstream_url": "https://code.videolan.org/videolan/dav1d.git",
+      "branch": "master"
+    },
+    {
+      "key": "libgav1",
+      "target": "cla7aye15I4nd/opensource-chromium__libgav1",
+      "canonical_upstream": "https://chromium.googlesource.com/codecs/libgav1",
+      "upstream_url": "https://chromium.googlesource.com/codecs/libgav1",
+      "branch": "main"
+    },
+    {
+      "key": "libyuv",
+      "target": "cla7aye15I4nd/opensource-chromium__libyuv",
+      "canonical_upstream": "https://chromium.googlesource.com/libyuv/libyuv",
+      "upstream_url": "https://chromium.googlesource.com/libyuv/libyuv",
+      "branch": "main"
+    }
+  ]
+}

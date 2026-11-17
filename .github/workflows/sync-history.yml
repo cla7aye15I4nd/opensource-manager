@@ -1,0 +1,104 @@
+name: Sync full upstream Git histories
+
+on:
+  schedule:
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Check without publishing commits
+        type: boolean
+        default: true
+      only:
+        description: Optional library key (blank means all 19)
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-upstream-history-sync
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    if: github.repository == 'cla7aye15I4nd/opensource-manager' && github.ref == 'refs/heads/main' && github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      mirrors: ${{ steps.config.outputs.mirrors }}
+    steps:
+      - name: Load pinned manager code and validate it
+        id: config
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          ONLY: ${{ inputs.only }}
+        run: |
+          set -euo pipefail
+          mkdir -p .github/scripts .github/tests
+          for file in .github/scripts/sync_history.py .github/tests/test_sync_history.py .github/history-mirrors.json; do
+            gh api "repos/$GITHUB_REPOSITORY/contents/$file?ref=$GITHUB_SHA" \
+              -H 'Accept: application/vnd.github.raw+json' > "$file"
+          done
+          python3 -m unittest discover -s .github/tests -p test_sync_history.py -v
+          python3 - <<'PY'
+          import importlib.util, json, os, pathlib
+          path = pathlib.Path('.github/scripts/sync_history.py')
+          spec = importlib.util.spec_from_file_location('history', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          mirrors = module.validate_config(json.loads(pathlib.Path('.github/history-mirrors.json').read_text()), os.environ['OWNER'])
+          if only := os.environ.get('ONLY'):
+              mirrors = [m for m in mirrors if m['key'] == only]
+              if not mirrors:
+                  raise ValueError('Unknown configured mirror key: ' + only)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('mirrors=' + json.dumps([{'key': m['key'], 'repository': m['target'].split('/')[1]} for m in mirrors], separators=(',', ':')) + '\n')
+          PY
+
+  sync:
+    needs: discover
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.mirrors) }}
+    steps:
+      - name: Load pinned synchronization code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .github/scripts
+          for file in .github/scripts/sync_history.py .github/history-mirrors.json; do
+            gh api "repos/$GITHUB_REPOSITORY/contents/$file?ref=$GITHUB_SHA" \
+              -H 'Accept: application/vnd.github.raw+json' > "$file"
+          done
+
+      - name: Create target-scoped token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ matrix.repository }}
+          permission-contents: write
+          permission-workflows: write
+          permission-administration: write
+
+      - name: Synchronize full Git history
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          OWNER: ${{ github.repository_owner }}
+          ONLY: ${{ matrix.key }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          args=(--config .github/history-mirrors.json --owner "$OWNER" --only "$ONLY")
+          [[ "$DRY_RUN" != true ]] || args+=(--dry-run)
+          python3 .github/scripts/sync_history.py "${args[@]}"

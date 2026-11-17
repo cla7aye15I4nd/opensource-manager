@@ -31,6 +31,7 @@ def validate_config(config,owner):
         if m['target']in seen:raise ValueError('Duplicate target')
         seen.add(m['target'])
         if m['strategy']not in {'git','release'}:raise ValueError('Unknown source strategy')
+        if not re.fullmatch(r'[A-Za-z0-9_.-]+',m.get('branch','main')):raise ValueError('Invalid snapshot branch')
         if m['strategy']=='git':
             p=urllib.parse.urlsplit(m['upstream_url'])
             if p.scheme!='https'or p.username or p.password or not p.hostname:raise ValueError('Public upstream must use an HTTPS URL without credentials')
@@ -158,7 +159,8 @@ def synchronize(m,work,dry_run=False):
     settings=api('repos/'+m['target']+'/actions/permissions')
     if settings.get('enabled')is not False:raise ValueError('Target mirror Actions must be disabled; synchronization belongs in opensource-manager')
     target=pathlib.Path(work)/'target'
-    command(['git','clone','--depth','1','--single-branch','--no-tags','https://github.com/'+m['target']+'.git',str(target)])
+    branch=m.get('branch','main')
+    command(['git','clone','--depth','1','--single-branch','--no-tags','--branch',branch,'https://github.com/'+m['target']+'.git',str(target)])
     old=check_existing(target,m)
     source_tree,source=fetch_snapshot(m,pathlib.Path(work)/'source')
     review_tree(source_tree)
@@ -166,7 +168,7 @@ def synchronize(m,work,dry_run=False):
     if dry_run:return 'would-update'
     if materialize(target,m,source_tree,source,old):
         commit_snapshot(target,source)
-        push_snapshot(target,m['target'],d['default_branch'])
+        push_snapshot(target,m['target'],branch)
         return 'updated'
     return 'unchanged'
 

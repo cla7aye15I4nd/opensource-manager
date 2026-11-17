@@ -10,7 +10,7 @@ on:
         type: boolean
         default: true
       only:
-        description: Optional configured library key (blank means all 16)
+        description: Optional configured library key (blank means all 3)
         type: string
         default: ""
 
@@ -64,7 +64,7 @@ jobs:
           permission-workflows: write
           permission-administration: read
 
-      - name: Synchronize current source trees
+      - name: Synchronize release source trees
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           OWNER: ${{ github.repository_owner }}
