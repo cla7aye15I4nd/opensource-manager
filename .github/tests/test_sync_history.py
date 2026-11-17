@@ -36,6 +36,11 @@ class HistoryTests(unittest.TestCase):
         self.assertTrue(history.publish_history(self.checkout, str(self.target), 'upstream-history', True))
         self.assertNotEqual(subprocess.run(['git', '--git-dir', str(self.target), 'show-ref', '--heads'], capture_output=True).returncode, 0)
 
+    def test_can_preserve_branch_history_without_rejected_tags(self):
+        self.assertTrue(history.publish_history(self.checkout, str(self.target), 'upstream-history', mirror_tags=False))
+        self.assertEqual(history.command(['git', '--git-dir', str(self.target), 'rev-list', '--count', 'refs/heads/upstream-history']), '2')
+        self.assertNotEqual(subprocess.run(['git', '--git-dir', str(self.target), 'show-ref', '--tags'], capture_output=True).returncode, 0)
+
     def test_existing_snapshot_branch_is_preserved(self):
         # A local snapshot branch can be unrelated to the upstream graph.
         snapshot = self.root / 'snapshot'

@@ -4,7 +4,7 @@ This public repository discovers and updates every public fork owned by
 `cla7aye15I4nd` whose name starts with `opensource-`. It runs every 30 minutes.
 
 Nineteen non-GitHub upstream Git repositories are mirrored with complete
-default-branch ancestry and upstream tags. Three release-source repositories
+default-branch ancestry and upstream tags where GitHub accepts them. Three release-source repositories
 continue to receive source snapshots; gettext and libunistring also have
 full-history branches when their official Git service is available. See
 [source mirror configuration and operations](SOURCE-MIRRORS.md).

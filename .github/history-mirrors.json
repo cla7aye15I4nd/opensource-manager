@@ -7,7 +7,8 @@
       "canonical_upstream": "https://gitlab.freedesktop.org/cairo/cairo",
       "strategy": "git",
       "upstream_url": "https://gitlab.freedesktop.org/cairo/cairo.git",
-      "branch": "upstream-history"
+      "branch": "upstream-history",
+      "mirror_tags": false
     },
     {
       "key": "pixman",

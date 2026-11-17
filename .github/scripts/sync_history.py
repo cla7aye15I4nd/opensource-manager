@@ -48,6 +48,8 @@ def validate_config(config, owner):
         keys.add(mirror['key']); targets.add(target)
         if not re.fullmatch(r'[A-Za-z0-9_.-]+', mirror['branch']) or mirror['branch'] == 'HEAD':
             raise ValueError('Invalid target branch')
+        if not isinstance(mirror.get('mirror_tags', True), bool):
+            raise ValueError('mirror_tags must be boolean')
         parsed = urllib.parse.urlsplit(mirror['upstream_url'])
         if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError('Upstream must be a credential-free HTTPS Git URL')
@@ -88,7 +90,7 @@ def push_with_retry(repo, *args):
             time.sleep(2 ** attempt)
 
 
-def publish_history(upstream, target_url, branch, dry_run=False):
+def publish_history(upstream, target_url, branch, dry_run=False, mirror_tags=True):
     _, source_sha = upstream_head(upstream)
     git(upstream, 'remote', 'add', 'target', target_url)
     target_ref = 'refs/heads/' + branch
@@ -98,7 +100,7 @@ def publish_history(upstream, target_url, branch, dry_run=False):
         git(upstream, 'fetch', 'target', target_ref)
         if subprocess.run(['git', '-C', str(upstream), 'merge-base', '--is-ancestor', target_sha, source_sha]).returncode:
             raise ValueError('History branch diverged; refusing to replace commits')
-    new_tags = checked_tags(upstream)
+    new_tags = checked_tags(upstream) if mirror_tags else []
     if dry_run:
         return target_sha != source_sha or bool(new_tags)
     # Use gh's short-lived token without embedding it in the remote URL.
@@ -123,7 +125,7 @@ def synchronize(mirror, work, dry_run=False):
     command(['git', 'clone', '--no-single-branch', mirror['upstream_url'], str(upstream)])
     # Keep the old snapshot branch intact. A separate history branch becomes
     # the default only after its objects and tags are safely published.
-    changed = publish_history(upstream, 'https://github.com/' + target_name + '.git', mirror['branch'], dry_run)
+    changed = publish_history(upstream, 'https://github.com/' + target_name + '.git', mirror['branch'], dry_run, mirror.get('mirror_tags', True))
     needs_default = metadata.get('default_branch') != mirror['branch']
     if dry_run:
         return 'would-update' if changed or needs_default else 'unchanged'
