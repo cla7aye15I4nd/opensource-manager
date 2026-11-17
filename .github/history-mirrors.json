@@ -110,8 +110,9 @@
       "key": "gettext",
       "target": "cla7aye15I4nd/opensource-gnu__gettext",
       "canonical_upstream": "https://git.savannah.gnu.org/cgit/gettext.git",
-      "upstream_url": "https://git.savannah.gnu.org/r/gettext.git",
-      "branch": "upstream-history"
+      "upstream_url": "https://github.com/autotools-mirror/gettext.git",
+      "branch": "upstream-history",
+      "verify_head_url": "https://git.savannah.gnu.org/r/gettext.git"
     },
     {
       "key": "libunistring",

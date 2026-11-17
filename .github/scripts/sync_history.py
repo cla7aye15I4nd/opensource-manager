@@ -50,9 +50,12 @@ def validate_config(config, owner):
             raise ValueError('Invalid target branch')
         if not isinstance(mirror.get('mirror_tags', True), bool):
             raise ValueError('mirror_tags must be boolean')
-        parsed = urllib.parse.urlsplit(mirror['upstream_url'])
-        if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
-            raise ValueError('Upstream must be a credential-free HTTPS Git URL')
+        for url in (mirror['upstream_url'], mirror.get('verify_head_url')):
+            if url is None:
+                continue
+            parsed = urllib.parse.urlsplit(url)
+            if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError('Upstream must be a credential-free HTTPS Git URL')
     return config['mirrors']
 
 
@@ -62,6 +65,13 @@ def upstream_head(repo):
         raise ValueError('No upstream default branch')
     branch = branch_ref.removeprefix('refs/remotes/origin/')
     return branch, git(repo, 'rev-parse', branch_ref)
+
+
+def verify_official_head(repo, url):
+    _, cloned_sha = upstream_head(repo)
+    lines = command(['git', 'ls-remote', url, 'HEAD'], timeout=120).splitlines()
+    if len(lines) != 1 or lines[0].split('\t', 1)[0] != cloned_sha:
+        raise ValueError('Git mirror HEAD differs from canonical upstream; refusing publication')
 
 
 def checked_tags(repo):
@@ -123,6 +133,8 @@ def synchronize(mirror, work, dry_run=False):
 
     upstream = pathlib.Path(work) / 'upstream'
     command(['git', 'clone', '--no-single-branch', mirror['upstream_url'], str(upstream)])
+    if mirror.get('verify_head_url'):
+        verify_official_head(upstream, mirror['verify_head_url'])
     # Keep the old snapshot branch intact. A separate history branch becomes
     # the default only after its objects and tags are safely published.
     changed = publish_history(upstream, 'https://github.com/' + target_name + '.git', mirror['branch'], dry_run, mirror.get('mirror_tags', True))

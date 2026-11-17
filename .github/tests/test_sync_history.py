@@ -64,6 +64,14 @@ class HistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'diverged'):
             history.publish_history(other, str(self.target), 'upstream-history')
 
+    def test_verifies_mirror_head_against_canonical_repo(self):
+        history.verify_official_head(self.checkout, str(self.source))
+        (self.source / 'source.c').write_text('new upstream head\n')
+        history.git(self.source, 'add', '.')
+        history.git(self.source, '-c', 'user.name=Test', '-c', 'user.email=test@example.org', 'commit', '-m', 'new')
+        with self.assertRaisesRegex(ValueError, 'differs'):
+            history.verify_official_head(self.checkout, str(self.source))
+
     def test_config_rejects_credentials_and_duplicates(self):
         mirror = {'key': 'x', 'target': 'example/opensource-upstream__x', 'upstream_url': 'https://example.org/x.git', 'branch': 'upstream-history'}
         history.validate_config({'schema': 1, 'mirrors': [mirror]}, 'example')
@@ -71,6 +79,8 @@ class HistoryTests(unittest.TestCase):
             history.validate_config({'schema': 1, 'mirrors': [mirror, mirror]}, 'example')
         with self.assertRaisesRegex(ValueError, 'credential-free'):
             history.validate_config({'schema': 1, 'mirrors': [{**mirror, 'upstream_url': 'https://user:password@example.org/x.git'}]}, 'example')
+        with self.assertRaisesRegex(ValueError, 'credential-free'):
+            history.validate_config({'schema': 1, 'mirrors': [{**mirror, 'verify_head_url': 'http://example.org/x.git'}]}, 'example')
 
 
 if __name__ == '__main__':
