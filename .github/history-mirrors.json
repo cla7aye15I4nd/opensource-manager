@@ -109,14 +109,14 @@
       "key": "gettext",
       "target": "cla7aye15I4nd/opensource-gnu__gettext",
       "canonical_upstream": "https://git.savannah.gnu.org/cgit/gettext.git",
-      "upstream_url": "https://git.savannah.gnu.org/git/gettext.git",
+      "upstream_url": "https://git.savannah.gnu.org/r/gettext.git",
       "branch": "upstream-history"
     },
     {
       "key": "libunistring",
       "target": "cla7aye15I4nd/opensource-gnu__libunistring",
       "canonical_upstream": "https://git.savannah.gnu.org/cgit/libunistring.git",
-      "upstream_url": "https://git.savannah.gnu.org/git/libunistring.git",
+      "upstream_url": "https://git.savannah.gnu.org/r/libunistring.git",
       "branch": "upstream-history"
     },
     {

@@ -8,6 +8,7 @@ import pathlib
 import re
 import subprocess
 import tempfile
+import time
 import urllib.parse
 
 
@@ -74,7 +75,17 @@ def checked_tags(repo):
     for ref, sha in remote.items():
         if ref in local and local[ref] != sha:
             raise ValueError('Target tag differs from upstream: ' + ref)
-    return [ref for ref in local if ref not in remote]
+    return sorted(ref for ref in local if ref not in remote)
+
+
+def push_with_retry(repo, *args):
+    for attempt in range(3):
+        try:
+            return git(repo, *args)
+        except RuntimeError as error:
+            if attempt == 2 or not any(marker in str(error).lower() for marker in ('http 500', 'http 502', 'http 503', 'http 504', 'remote end hung up', 'unexpected disconnect')):
+                raise
+            time.sleep(2 ** attempt)
 
 
 def publish_history(upstream, target_url, branch, dry_run=False):
@@ -93,9 +104,9 @@ def publish_history(upstream, target_url, branch, dry_run=False):
     # Use gh's short-lived token without embedding it in the remote URL.
     auth = ['-c', 'credential.helper=', '-c', 'credential.https://github.com.helper=!gh auth git-credential']
     if target_sha != source_sha:
-        git(upstream, *auth, 'push', 'target', source_sha + ':' + target_ref)
-    if new_tags:
-        git(upstream, *auth, 'push', 'target', *new_tags)
+        push_with_retry(upstream, *auth, 'push', 'target', source_sha + ':' + target_ref)
+    for offset in range(0, len(new_tags), 10):
+        push_with_retry(upstream, *auth, 'push', 'target', *new_tags[offset:offset + 10])
     return target_sha != source_sha or bool(new_tags)
 
 
