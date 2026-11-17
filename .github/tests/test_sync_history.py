@@ -64,13 +64,17 @@ class HistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'diverged'):
             history.publish_history(other, str(self.target), 'upstream-history')
 
-    def test_verifies_mirror_head_against_canonical_repo(self):
-        history.verify_official_head(self.checkout, str(self.source))
+    def test_verifies_mirror_refs_against_canonical_repo(self):
+        history.verify_official_refs(self.checkout, str(self.source))
+        history.git(self.source, 'tag', 'v2')
+        with self.assertRaisesRegex(ValueError, 'tags differ'):
+            history.verify_official_refs(self.checkout, str(self.source))
+        history.git(self.source, 'tag', '-d', 'v2')
         (self.source / 'source.c').write_text('new upstream head\n')
         history.git(self.source, 'add', '.')
         history.git(self.source, '-c', 'user.name=Test', '-c', 'user.email=test@example.org', 'commit', '-m', 'new')
         with self.assertRaisesRegex(ValueError, 'differs'):
-            history.verify_official_head(self.checkout, str(self.source))
+            history.verify_official_refs(self.checkout, str(self.source))
 
     def test_config_rejects_credentials_and_duplicates(self):
         mirror = {'key': 'x', 'target': 'example/opensource-upstream__x', 'upstream_url': 'https://example.org/x.git', 'branch': 'upstream-history'}

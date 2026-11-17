@@ -67,11 +67,18 @@ def upstream_head(repo):
     return branch, git(repo, 'rev-parse', branch_ref)
 
 
-def verify_official_head(repo, url):
+def verify_official_refs(repo, url):
     _, cloned_sha = upstream_head(repo)
     lines = command(['git', 'ls-remote', url, 'HEAD'], timeout=120).splitlines()
     if len(lines) != 1 or lines[0].split('\t', 1)[0] != cloned_sha:
         raise ValueError('Git mirror HEAD differs from canonical upstream; refusing publication')
+    official_tags = dict(line.split('\t', 1)[::-1] for line in command(['git', 'ls-remote', '--tags', '--refs', url], timeout=120).splitlines())
+    cloned_tags = {}
+    for line in git(repo, 'for-each-ref', '--format=%(objectname) %(refname)', 'refs/tags').splitlines():
+        sha, ref = line.split(' ', 1)
+        cloned_tags[ref] = sha
+    if official_tags != cloned_tags:
+        raise ValueError('Git mirror tags differ from canonical upstream; refusing publication')
 
 
 def checked_tags(repo):
@@ -134,7 +141,7 @@ def synchronize(mirror, work, dry_run=False):
     upstream = pathlib.Path(work) / 'upstream'
     command(['git', 'clone', '--no-single-branch', mirror['upstream_url'], str(upstream)])
     if mirror.get('verify_head_url'):
-        verify_official_head(upstream, mirror['verify_head_url'])
+        verify_official_refs(upstream, mirror['verify_head_url'])
     # Keep the old snapshot branch intact. A separate history branch becomes
     # the default only after its objects and tags are safely published.
     changed = publish_history(upstream, 'https://github.com/' + target_name + '.git', mirror['branch'], dry_run, mirror.get('mirror_tags', True))
